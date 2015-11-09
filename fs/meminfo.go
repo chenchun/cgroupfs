@@ -46,8 +46,8 @@ import (
 //VmallocTotal:   %8lu kB
 //VmallocUsed:    %8lu kB
 //VmallocChunk:   %8lu kB
-const content = `
-MemTotal:       %d kB
+const content =
+`MemTotal:       %d kB
 MemFree:        %d kB
 MemAvailable:   %d kB
 `
@@ -93,7 +93,7 @@ func (MemInfoFile) Attr(ctx context.Context, a *fuse.Attr) error {
 }
 
 func (mi MemInfoFile) ReadAll(ctx context.Context) ([]byte, error) {
-	stats := &cgroups.Stats{}
+	stats := cgroups.NewStats()
 	mi.memCgroup.GetStats(mi.cgroupdir, stats)
 	memStats := stats.MemoryStats
 	memInfo := fmt.Sprintf(content,
