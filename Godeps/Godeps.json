@@ -1,0 +1,39 @@
+{
+	"ImportPath": "github.com/chenchun/cgroupfs",
+	"GoVersion": "go1.4.2",
+	"Deps": [
+		{
+			"ImportPath": "bazil.org/fuse",
+			"Rev": "70f2bea820ccbf0b4e72e44dbcb28fe333635085"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/mount",
+			"Comment": "v1.4.1-7496-g33e8d63",
+			"Rev": "33e8d6333cb2c0d5f47cc492ac880bbe762a66a1"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/units",
+			"Comment": "v1.4.1-7496-g33e8d63",
+			"Rev": "33e8d6333cb2c0d5f47cc492ac880bbe762a66a1"
+		},
+		{
+			"ImportPath": "github.com/opencontainers/runc/libcontainer/cgroups",
+			"Comment": "v0.0.4-143-gdb21ac7",
+			"Rev": "db21ac775035ef70e833bc0b7d25c9207d418d5d"
+		},
+		{
+			"ImportPath": "github.com/opencontainers/runc/libcontainer/configs",
+			"Comment": "v0.0.4-143-gdb21ac7",
+			"Rev": "db21ac775035ef70e833bc0b7d25c9207d418d5d"
+		},
+		{
+			"ImportPath": "github.com/opencontainers/runc/libcontainer/system",
+			"Comment": "v0.0.4-143-gdb21ac7",
+			"Rev": "db21ac775035ef70e833bc0b7d25c9207d418d5d"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "b71143c25f0aad5f54981684b715686d34c56d25"
+		}
+	]
+}
