@@ -4,11 +4,17 @@ Like lxcfs https://github.com/lxc/lxcfs, cgroupfs provides an emulated /proc/mem
 
 # Usage
 
-    go run cgroupfs.go /tmp/cgroupfs /docker/$container_id
-    docker run --rm -it --device /dev/fuse --cap-add SYS_ADMIN -v /tmp/cgroupfs/meminfo:/proc/meminfo ubuntu bash
+    container_id=`docker create --device /dev/fuse --cap-add SYS_ADMIN -v /tmp/cgroupfs/meminfo:/proc/meminfo -m=15m ubuntu sleep 213133`
 
-    root@91f2a72135cb:/# free -m
+    ## in the second console tab
+    go run cgroupfs.go /tmp/cgroupfs /docker/$container_id
+
+    ## go to the first tab
+    docker start $container_id
+
+    docker exec -it $container_id bash
+    root@251d4d18bca6:/# free -m
                  total       used       free     shared    buffers     cached
-    Mem:            10          0          9          0          0          0
-    -/+ buffers/cache:          0          9
+    Mem:            15          2         12          0          0          1
+    -/+ buffers/cache:          0         14
     Swap:            0          0          0
