@@ -7,6 +7,11 @@
 			"Rev": "70f2bea820ccbf0b4e72e44dbcb28fe333635085"
 		},
 		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.8.3-3-g07d998d",
+			"Rev": "07d998d174c4e2dc90e2f1989a20724220bca1ff"
+		},
+		{
 			"ImportPath": "github.com/docker/docker/pkg/mount",
 			"Comment": "v1.4.1-7496-g33e8d63",
 			"Rev": "33e8d6333cb2c0d5f47cc492ac880bbe762a66a1"
