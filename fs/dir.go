@@ -6,13 +6,13 @@ import (
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
 	_ "bazil.org/fuse/fs/fstestutil"
-	"golang.org/x/net/context"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
+	"golang.org/x/net/context"
 	"path/filepath"
 )
 
 // Dir implements both Node and Handle for the root directory.
-type Dir struct{
+type Dir struct {
 	cgroupdir string
 }
 

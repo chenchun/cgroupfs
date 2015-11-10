@@ -7,9 +7,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/bazil.org/fuse"
-	fusefs "github.com/chenchun/cgroupfs/Godeps/_workspace/src/bazil.org/fuse/fs"
-	_ "github.com/chenchun/cgroupfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
+	"bazil.org/fuse"
+	fusefs "bazil.org/fuse/fs"
+	_ "bazil.org/fuse/fs/fstestutil"
 
 	"github.com/chenchun/cgroupfs/fs"
 )

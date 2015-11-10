@@ -6,7 +6,7 @@ import (
 )
 
 // FS implements the hello world file system.
-type FS struct{
+type FS struct {
 	CgroupDir string
 }
 

@@ -46,11 +46,11 @@ import (
 //VmallocTotal:   %8lu kB
 //VmallocUsed:    %8lu kB
 //VmallocChunk:   %8lu kB
-const content =
-`MemTotal:       %d kB
+const content = `MemTotal:       %d kB
 MemFree:        %d kB
 MemAvailable:   %d kB
 `
+
 //Buffers:        %s kB
 //Cached:         %s kB
 //SwapCached:     %s kB
@@ -67,16 +67,16 @@ MemAvailable:   %d kB
 
 var (
 	// https://www.kernel.org/doc/Documentation/cgroups/cgroups.txt
-	hardLimit = "memory.limit_in_bytes"
-	softLimit = "memory.soft_limit_in_bytes"
-	swapLimit = "memory.memsw.limit_in_bytes"
+	hardLimit   = "memory.limit_in_bytes"
+	softLimit   = "memory.soft_limit_in_bytes"
+	swapLimit   = "memory.memsw.limit_in_bytes"
 	kernelLimit = "memory.kmem.limit_in_bytes"
-	oomControl = "memory.oom_control"
-	swappniess = "memory.swappiness"
-	memusage = "memory.usage_in_bytes"
+	oomControl  = "memory.oom_control"
+	swappniess  = "memory.swappiness"
+	memusage    = "memory.usage_in_bytes"
 )
 
-type MemInfoFile struct{
+type MemInfoFile struct {
 	cgroupdir string
 	memCgroup fs.MemoryGroup
 }
