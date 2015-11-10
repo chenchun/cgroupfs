@@ -8,6 +8,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/docker/libcontainer/vendor/src/github.com/Sirupsen/logrus"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
 )
@@ -86,10 +87,11 @@ func NewMemInfoFile(cgroupdir string) MemInfoFile {
 	return MemInfoFile{cgroupdir, fs.MemoryGroup{}}
 }
 
-func (MemInfoFile) Attr(ctx context.Context, a *fuse.Attr) error {
+func (mi MemInfoFile) Attr(ctx context.Context, a *fuse.Attr) error {
 	a.Inode = 2
 	a.Mode = 0444
-	a.Size = uint64(len(content))
+	data, _ := mi.ReadAll(ctx)
+	a.Size = uint64(len(data))
 	return nil
 }
 
@@ -97,10 +99,30 @@ func (mi MemInfoFile) ReadAll(ctx context.Context) ([]byte, error) {
 	stats := cgroups.NewStats()
 	mi.memCgroup.GetStats(mi.cgroupdir, stats)
 	memStats := stats.MemoryStats
+	mls := mi.getLimits()
 	memInfo := fmt.Sprintf(content,
-		memStats.Stats["total_rss"],
-		memStats.Usage.Usage,
-		(memStats.Stats["total_rss"] - memStats.Usage.Usage),
+		mls[hardLimit],
+		(mls[hardLimit] - memStats.Usage.Usage),
+		(mls[hardLimit] - memStats.Usage.Usage),
 	)
+	logrus.Debugf("memInfo \n%s", memInfo)
 	return []byte(memInfo), nil
+}
+
+func (mi MemInfoFile) getLimits() map[string]uint64 {
+	m := make(map[string]uint64)
+	for _, file := range []string{
+		hardLimit,
+		softLimit,
+		swapLimit,
+		kernelLimit,
+	} {
+		val, err := getCgroupParamUint(mi.cgroupdir, file)
+		if err != nil {
+			logrus.Debugf("Error getting memory %s:%v", file, err)
+		} else {
+			m[file] = val
+		}
+	}
+	return m
 }
