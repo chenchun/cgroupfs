@@ -2,13 +2,15 @@ package fs
 
 import (
 	"os"
+	"path/filepath"
 
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
 	_ "bazil.org/fuse/fs/fstestutil"
+
 	"github.com/opencontainers/runc/libcontainer/cgroups"
+
 	"golang.org/x/net/context"
-	"path/filepath"
 )
 
 // Dir implements both Node and Handle for the root directory.

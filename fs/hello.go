@@ -3,6 +3,7 @@ package fs
 import (
 	"bazil.org/fuse"
 	_ "bazil.org/fuse/fs/fstestutil"
+
 	"golang.org/x/net/context"
 )
 

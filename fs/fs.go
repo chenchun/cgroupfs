@@ -1,7 +1,7 @@
 package fs
 
 import (
-	fusefs "bazil.org/fuse/fs"
+	"bazil.org/fuse/fs"
 	_ "bazil.org/fuse/fs/fstestutil"
 )
 
@@ -10,6 +10,6 @@ type FS struct {
 	CgroupDir string
 }
 
-func (fs FS) Root() (fusefs.Node, error) {
+func (fs FS) Root() (fs.Node, error) {
 	return Dir{fs.CgroupDir}, nil
 }

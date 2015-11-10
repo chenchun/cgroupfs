@@ -5,6 +5,7 @@ import (
 
 	"bazil.org/fuse"
 	_ "bazil.org/fuse/fs/fstestutil"
+
 	"golang.org/x/net/context"
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
