@@ -51,6 +51,9 @@ import (
 const content = `MemTotal:       %d kB
 MemFree:        %d kB
 MemAvailable:   %d kB
+Buffers:        %d kB
+Cached:         %d kB
+SwapCached:     %d kB
 `
 
 //Buffers:        %s kB
@@ -101,9 +104,12 @@ func (mi MemInfoFile) ReadAll(ctx context.Context) ([]byte, error) {
 	memStats := stats.MemoryStats
 	mls := mi.getLimits()
 	memInfo := fmt.Sprintf(content,
-		mls[hardLimit],
-		(mls[hardLimit] - memStats.Usage.Usage),
-		(mls[hardLimit] - memStats.Usage.Usage),
+		mls[hardLimit]/1024,
+		(mls[hardLimit] - memStats.Usage.Usage)/1024,
+		(mls[hardLimit] - memStats.Usage.Usage)/1024,
+		0,
+		memStats.Stats["total_cache"]/1024,
+		0,
 	)
 	logrus.Debugf("memInfo \n%s", memInfo)
 	return []byte(memInfo), nil
