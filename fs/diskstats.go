@@ -7,11 +7,12 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io/ioutil"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
 	"golang.org/x/net/context"
-	"io/ioutil"
 )
 
 // File implements both Node and Handle for the hello file.
