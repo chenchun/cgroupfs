@@ -33,6 +33,12 @@ func (d Dir) Lookup(ctx context.Context, name string) (fusefs.Node, error) {
 			return nil, fuse.ENODATA
 		}
 		return NewMemInfoFile(filepath.Join(memMountPoint, d.cgroupdir)), nil
+	} else if name == "diskstats" {
+		blkioMountPoint, err := cgroups.FindCgroupMountpoint("blkio")
+		if err != nil {
+			return nil, fuse.ENODATA
+		}
+		return NewDiskStatsFile(filepath.Join(blkioMountPoint, d.cgroupdir)), nil
 	}
 	return nil, fuse.ENOENT
 }
@@ -41,5 +47,6 @@ func (Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	return []fuse.Dirent{
 		{Inode: 2, Name: "hello", Type: fuse.DT_File},
 		{Inode: 3, Name: "meminfo", Type: fuse.DT_File},
+		{Inode: 4, Name: "diskstats", Type: fuse.DT_File},
 	}, nil
 }
