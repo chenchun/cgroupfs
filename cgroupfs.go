@@ -28,29 +28,32 @@ func main() {
 		Usage()
 		os.Exit(2)
 	}
-	mountpoint := flag.Arg(0)
-	cgroupdir := flag.Arg(1)
+	if err := Serve(flag.Arg(0), flag.Arg(1)); err != nil {
+		log.Fatal(err)
+	}
+}
 
+func Serve(mountPoint, cgroupDir string) error {
 	c, err := fuse.Mount(
-		mountpoint,
+		mountPoint,
 		fuse.FSName("cgroupfs"),
 		fuse.Subtype("cgroupfs"),
 		fuse.LocalVolume(),
 		fuse.VolumeName("cgroup volume"),
 	)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer c.Close()
 
-	err = fusefs.Serve(c, fs.FS{cgroupdir})
+	err = fusefs.Serve(c, fs.FS{cgroupDir})
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	// check if the mount process has an error to report
 	<-c.Ready
 	if err := c.MountError; err != nil {
-		log.Fatal(err)
+		return err
 	}
 }
