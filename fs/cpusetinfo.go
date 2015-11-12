@@ -79,7 +79,7 @@ func (ci CpuInfoFile) getCpuSets() []int {
 
 	rawContent, err = ioutil.ReadFile(filepath.Join(ci.cgroupdir, "cpuset.cpus"))
 	if err != nil {
-		logrus.Debugf("Fail to read %/cpuset.cpus with message %v", ci.cgroupdir, err)
+		logrus.Debugf("Fail to read %s/cpuset.cpus with message %v", ci.cgroupdir, err)
 	}
 
 	content = strings.TrimSpace(string(rawContent))
@@ -89,12 +89,12 @@ func (ci CpuInfoFile) getCpuSets() []int {
 		// we do not check the error after calling parseUnit, because
 		// cgroup has done it for us
 		if len(idRange) == 1 {
-			cpuID, err = parseUint(idRange[0], 10, 32)
+			cpuID, _ = parseUint(idRange[0], 10, 32)
 			tmpArray[count] = int(cpuID)
 			count++
 		} else if len(idRange) == 2 {
-			begin, err = parseUint(idRange[0], 10, 32)
-			end, err = parseUint(idRange[1], 10, 32)
+			begin, _ = parseUint(idRange[0], 10, 32)
+			end, _ = parseUint(idRange[1], 10, 32)
 			for i := int(begin); i <= int(end); i++ {
 				tmpArray[count] = i
 				count++

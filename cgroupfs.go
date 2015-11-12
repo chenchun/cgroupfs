@@ -56,4 +56,6 @@ func Serve(mountPoint, cgroupDir string) error {
 	if err := c.MountError; err != nil {
 		return err
 	}
+
+	return nil
 }
