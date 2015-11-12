@@ -2,6 +2,7 @@ package fs
 
 import (
 	"bazil.org/fuse"
+	fusefs "bazil.org/fuse/fs"
 	_ "bazil.org/fuse/fs/fstestutil"
 
 	"bufio"
@@ -21,7 +22,15 @@ type DiskStatsFile struct {
 	blkioGroup fs.BlkioGroup
 }
 
-func NewDiskStatsFile(cgroupdir string) DiskStatsFile {
+func init() {
+	fileMap["diskstats"] = FileInfo{
+		initFunc:   NewDiskStatsFile,
+		inode:      INODE_DISKSTATS,
+		subsysName: "blkio",
+	}
+}
+
+func NewDiskStatsFile(cgroupdir string) fusefs.Node {
 	return DiskStatsFile{cgroupdir, fs.BlkioGroup{}}
 }
 
@@ -56,7 +65,7 @@ const (
 )
 
 func (ds DiskStatsFile) Attr(ctx context.Context, a *fuse.Attr) error {
-	a.Inode = 4
+	a.Inode = INODE_DISKSTATS
 	a.Mode = 0444
 	data, _ := ds.ReadAll(ctx)
 	a.Size = uint64(len(data))

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"bazil.org/fuse"
+	fusefs "bazil.org/fuse/fs"
 	_ "bazil.org/fuse/fs/fstestutil"
 
 	"golang.org/x/net/context"
@@ -86,12 +87,20 @@ type MemInfoFile struct {
 	memCgroup fs.MemoryGroup
 }
 
-func NewMemInfoFile(cgroupdir string) MemInfoFile {
+func init() {
+	fileMap["meminfo"] = FileInfo{
+		initFunc:   NewMemInfoFile,
+		inode:      INODE_MEMINFO,
+		subsysName: "memory",
+	}
+}
+
+func NewMemInfoFile(cgroupdir string) fusefs.Node {
 	return MemInfoFile{cgroupdir, fs.MemoryGroup{}}
 }
 
 func (mi MemInfoFile) Attr(ctx context.Context, a *fuse.Attr) error {
-	a.Inode = 3
+	a.Inode = INODE_MEMINFO
 	a.Mode = 0444
 	data, _ := mi.ReadAll(ctx)
 	a.Size = uint64(len(data))
@@ -105,8 +114,8 @@ func (mi MemInfoFile) ReadAll(ctx context.Context) ([]byte, error) {
 	mls := mi.getLimits()
 	memInfo := fmt.Sprintf(content,
 		mls[hardLimit]/1024,
-		(mls[hardLimit] - memStats.Usage.Usage)/1024,
-		(mls[hardLimit] - memStats.Usage.Usage)/1024,
+		(mls[hardLimit]-memStats.Usage.Usage)/1024,
+		(mls[hardLimit]-memStats.Usage.Usage)/1024,
 		0,
 		memStats.Stats["total_cache"]/1024,
 		0,

@@ -11,12 +11,21 @@ import (
 	"strings"
 
 	"bazil.org/fuse"
+	fusefs "bazil.org/fuse/fs"
 	"github.com/Sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
 type CpuInfoFile struct {
 	cgroupdir string
+}
+
+func init() {
+	fileMap["cpuinfo"] = FileInfo{
+		initFunc:   NewCpuInfoFile,
+		inode:      INODE_CPUINFO,
+		subsysName: "cpuset",
+	}
 }
 
 var (
@@ -26,12 +35,12 @@ var (
 	buffer   bytes.Buffer
 )
 
-func NewCpuInfoFile(cgroupdir string) CpuInfoFile {
+func NewCpuInfoFile(cgroupdir string) fusefs.Node {
 	return CpuInfoFile{cgroupdir}
 }
 
 func (ci CpuInfoFile) Attr(ctx context.Context, a *fuse.Attr) error {
-	a.Inode = 5
+	a.Inode = INODE_CPUINFO
 	a.Mode = 0444
 	data, _ := ci.ReadAll(ctx)
 	a.Size = uint64(len(data))

@@ -3,6 +3,7 @@ package fs
 import (
 	"os"
 	"path/filepath"
+	"sync"
 
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
@@ -13,13 +14,35 @@ import (
 	"golang.org/x/net/context"
 )
 
+const (
+	_ = iota
+	INODE_DIR
+	INODE_HELLO
+	INODE_MEMINFO
+	INODE_DISKSTATS
+	INODE_CPUINFO
+)
+
+var (
+	fileMap = make(map[string]FileInfo)
+
+	direntsOnce sync.Once
+	dirents     []fuse.Dirent
+)
+
 // Dir implements both Node and Handle for the root directory.
 type Dir struct {
 	cgroupdir string
 }
 
+type FileInfo struct {
+	initFunc   func(cgroupdir string) fusefs.Node
+	inode      uint64
+	subsysName string
+}
+
 func (Dir) Attr(ctx context.Context, a *fuse.Attr) error {
-	a.Inode = 1
+	a.Inode = INODE_DIR
 	a.Mode = os.ModeDir | 0555
 	return nil
 }
@@ -27,33 +50,22 @@ func (Dir) Attr(ctx context.Context, a *fuse.Attr) error {
 func (d Dir) Lookup(ctx context.Context, name string) (fusefs.Node, error) {
 	if name == "hello" {
 		return File{}, nil
-	} else if name == "meminfo" {
-		memMountPoint, err := cgroups.FindCgroupMountpoint("memory")
+	} else if fileInfo, ok := fileMap[name]; ok {
+		mountPoint, err := cgroups.FindCgroupMountpoint(fileInfo.subsysName)
 		if err != nil {
 			return nil, fuse.ENODATA
 		}
-		return NewMemInfoFile(filepath.Join(memMountPoint, d.cgroupdir)), nil
-	} else if name == "diskstats" {
-		blkioMountPoint, err := cgroups.FindCgroupMountpoint("blkio")
-		if err != nil {
-			return nil, fuse.ENODATA
-		}
-		return NewDiskStatsFile(filepath.Join(blkioMountPoint, d.cgroupdir)), nil
-	} else if name == "cpuinfo" {
-		cpusetMountPoint, err := cgroups.FindCgroupMountpoint("cpuset")
-		if err != nil {
-			return nil, fuse.ENODATA
-		}
-		return NewCpuInfoFile(filepath.Join(cpusetMountPoint, d.cgroupdir)), nil
+		return fileInfo.initFunc(filepath.Join(mountPoint, d.cgroupdir)), nil
 	}
 	return nil, fuse.ENOENT
 }
 
 func (Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
-	return []fuse.Dirent{
-		{Inode: 2, Name: "hello", Type: fuse.DT_File},
-		{Inode: 3, Name: "meminfo", Type: fuse.DT_File},
-		{Inode: 4, Name: "diskstats", Type: fuse.DT_File},
-		{Inode: 5, Name: "cpuinfo", Type: fuse.DT_File},
-	}, nil
+	direntsOnce.Do(func() {
+		dirents = append(dirents, fuse.Dirent{Inode: INODE_HELLO, Name: "hello", Type: fuse.DT_File})
+		for k, v := range fileMap {
+			dirents = append(dirents, fuse.Dirent{Inode: v.inode, Name: k, Type: fuse.DT_File})
+		}
+	})
+	return dirents, nil
 }
