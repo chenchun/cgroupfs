@@ -1,9 +1,6 @@
-// CgroupFS implements a simple "hello world" file system.
-package main
+package cgroupfs
 
 import (
-	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -15,25 +12,6 @@ import (
 
 	"github.com/chenchun/cgroupfs/fs"
 )
-
-var Usage = func() {
-	fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
-	fmt.Fprintf(os.Stderr, "  %s MOUNTPOINT CGROUP_DIR\n", os.Args[0])
-	flag.PrintDefaults()
-}
-
-func main() {
-	flag.Usage = Usage
-	flag.Parse()
-
-	if flag.NArg() != 2 {
-		Usage()
-		os.Exit(2)
-	}
-	if err := Serve(flag.Arg(0), flag.Arg(1)); err != nil {
-		log.Fatal(err)
-	}
-}
 
 func Serve(mountPoint, cgroupDir string) error {
 	c, err := fuse.Mount(
