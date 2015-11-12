@@ -4,15 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"path/filepath"
 	"regexp"
 	"runtime"
-	"sort"
 	"strings"
 
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
-	"github.com/Sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
@@ -20,19 +17,8 @@ type CpuInfoFile struct {
 	cgroupdir string
 }
 
-func init() {
-	fileMap["cpuinfo"] = FileInfo{
-		initFunc:   NewCpuInfoFile,
-		inode:      INODE_CPUINFO,
-		subsysName: "cpuset",
-	}
-}
-
 var (
-	cpuinfo                 = make(map[int]string)
-	pattern  string         = "processor\\s+?:\\s+?\\d"
-	replacer *regexp.Regexp = nil
-	buffer   bytes.Buffer
+	cpuinfoModifier *regexp.Regexp = nil
 )
 
 func NewCpuInfoFile(cgroupdir string) fusefs.Node {
@@ -49,98 +35,49 @@ func (ci CpuInfoFile) Attr(ctx context.Context, a *fuse.Attr) error {
 }
 
 func (ci CpuInfoFile) ReadAll(ctx context.Context) ([]byte, error) {
-	buffer.Reset()
-	if replacer == nil {
-		return buffer.Bytes(), nil
+	var buffer bytes.Buffer
+
+	if cpuinfoModifier != nil {
+		ci.getCpuInfo(&buffer, getCpuSets(ci.cgroupdir))
 	}
 
-	return ci.getCpuInfo(ci.getCpuSets()), nil
+	return buffer.Bytes(), nil
 }
 
-func (ci CpuInfoFile) getCpuInfo(cpuIDs []int) []byte {
-	buffer.Reset()
-
-	if len(cpuIDs) == 0 {
-		for _, info := range cpuinfo {
-			buffer.WriteString(info)
-		}
-	} else {
-		for i, id := range cpuIDs {
-			info, found := cpuinfo[id]
-			if found {
-				buffer.WriteString(replacer.ReplaceAllString(info,
-					fmt.Sprintf("%-16s: %d", "processor", i)))
-			}
-		}
+func (ci CpuInfoFile) getCpuInfo(buffer *bytes.Buffer, cpuIDs []int) {
+	if cpuIDs == nil {
+		return
 	}
 
-	return buffer.Bytes()
-}
-
-func (ci CpuInfoFile) getCpuSets() []int {
-	var (
-		err               error
-		rawContent        []byte
-		content           string
-		tmpArray          []int = make([]int, len(cpuinfo))
-		cpuID, begin, end uint64
-	)
-
-	rawContent, err = ioutil.ReadFile(filepath.Join(ci.cgroupdir, "cpuset.cpus"))
+	rawContent, err := ioutil.ReadFile("/proc/cpuinfo")
 	if err != nil {
-		logrus.Debugf("Fail to read %s/cpuset.cpus with message %v", ci.cgroupdir, err)
+		return
 	}
 
-	content = strings.TrimSpace(string(rawContent))
 	count := 0
-	for _, split := range strings.Split(content, ",") {
-		idRange := strings.Split(split, "-")
-		// we do not check the error after calling parseUnit, because
-		// cgroup has done it for us
-		if len(idRange) == 1 {
-			cpuID, _ = parseUint(idRange[0], 10, 32)
-			tmpArray[count] = int(cpuID)
-			count++
-		} else if len(idRange) == 2 {
-			begin, _ = parseUint(idRange[0], 10, 32)
-			end, _ = parseUint(idRange[1], 10, 32)
-			for i := int(begin); i <= int(end); i++ {
-				tmpArray[count] = i
+	for _, line := range strings.Split(string(rawContent), "\n\n") {
+		groups := cpuinfoModifier.FindSubmatch([]byte(line))
+		if len(groups) == 2 {
+			// we do not check the error after calling parseUnit, because
+			// kernel guarantees for us
+			cpuID, _ := parseUint(string(groups[1]), 10, 32)
+			if binarySearchInt(cpuIDs, int(cpuID)) {
+				buffer.WriteString(cpuinfoModifier.ReplaceAllString(line, fmt.Sprintf("%-16s: %d", "processor", count)))
+				buffer.WriteString("\n\n")
 				count++
 			}
 		}
 	}
-
-	cpuIDs := tmpArray[:count]
-	sort.Ints(cpuIDs)
-
-	return cpuIDs
 }
 
 func init() {
 	if runtime.GOOS == "linux" {
-		rawContent, err := ioutil.ReadFile("/proc/cpuinfo")
-		if err != nil {
-			return
+		fileMap["cpuinfo"] = FileInfo{
+			initFunc:   NewCpuInfoFile,
+			inode:      INODE_CPUINFO,
+			subsysName: "cpuset",
 		}
 
-		count := 0
-		buffer.Reset()
-		for _, line := range strings.Split(string(rawContent), "\n") {
-			if len(line) == 0 {
-				cpuinfo[count] = buffer.String()
-				count++
-				buffer.Reset()
-			}
-
-			buffer.WriteString(line)
-			buffer.WriteString("\n")
-		}
-
-		replacer, err = regexp.Compile(pattern)
-		if err != nil {
-			logrus.Debugf("Compile %s failed with %v", pattern, err)
-			return
-		}
+		cpuinfoModifier, _ = regexp.Compile("processor\\s+?:\\s+?(\\d)")
 	}
 }
