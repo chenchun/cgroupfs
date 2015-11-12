@@ -56,7 +56,7 @@ const (
 )
 
 func (ds DiskStatsFile) Attr(ctx context.Context, a *fuse.Attr) error {
-	a.Inode = 2
+	a.Inode = 4
 	a.Mode = 0444
 	data, _ := ds.ReadAll(ctx)
 	a.Size = uint64(len(data))

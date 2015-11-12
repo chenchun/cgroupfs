@@ -91,7 +91,7 @@ func NewMemInfoFile(cgroupdir string) MemInfoFile {
 }
 
 func (mi MemInfoFile) Attr(ctx context.Context, a *fuse.Attr) error {
-	a.Inode = 2
+	a.Inode = 3
 	a.Mode = 0444
 	data, _ := mi.ReadAll(ctx)
 	a.Size = uint64(len(data))
