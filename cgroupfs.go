@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
@@ -45,6 +47,7 @@ func Serve(mountPoint, cgroupDir string) error {
 		return err
 	}
 	defer c.Close()
+	go handleStopSignals(mountPoint)
 
 	err = fusefs.Serve(c, fs.FS{cgroupDir})
 	if err != nil {
@@ -58,4 +61,16 @@ func Serve(mountPoint, cgroupDir string) error {
 	}
 
 	return nil
+}
+
+func handleStopSignals(mountPoint string) {
+	s := make(chan os.Signal, 10)
+	signal.Notify(s, os.Interrupt, syscall.SIGTERM, syscall.SIGSTOP)
+
+	for range s {
+		if err := fuse.Unmount(mountPoint); err != nil {
+			log.Fatal("Error umounting %s: %s", mountPoint, err)
+		}
+		os.Exit(0)
+	}
 }
