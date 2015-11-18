@@ -15,10 +15,11 @@ var (
 // FS implements the hello world file system.
 type FS struct {
 	CgroupDir string
+	VethName  string
 }
 
 func (fs FS) Root() (fs.Node, error) {
-	return Dir{fs.CgroupDir}, nil
+	return Dir{fs.CgroupDir, fs.VethName}, nil
 }
 
 func ProcFiles() []string {

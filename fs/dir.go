@@ -22,6 +22,7 @@ const (
 	INODE_DISKSTATS
 	INODE_CPUINFO
 	INODE_STAT
+	INODE_NET_DEV
 )
 
 var (
@@ -34,6 +35,7 @@ var (
 // Dir implements both Node and Handle for the root directory.
 type Dir struct {
 	cgroupdir string
+	vethName  string
 }
 
 type FileInfo struct {
@@ -51,6 +53,10 @@ func (Dir) Attr(ctx context.Context, a *fuse.Attr) error {
 func (d Dir) Lookup(ctx context.Context, name string) (fusefs.Node, error) {
 	if name == "hello" {
 		return File{}, nil
+	} else if name == "net_dev" {
+		if fileInfo, ok := fileMap[name]; ok {
+			return fileInfo.initFunc(d.vethName), nil
+		}
 	} else if fileInfo, ok := fileMap[name]; ok {
 		mountPoint, err := cgroups.FindCgroupMountpoint(fileInfo.subsysName)
 		if err != nil {
