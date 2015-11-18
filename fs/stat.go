@@ -27,7 +27,7 @@ func NewStatFile(cgroupdir string) fusefs.Node {
 }
 
 func (sf StatFile) Attr(ctx context.Context, a *fuse.Attr) error {
-	a.Inode = 6
+	a.Inode = INODE_STAT
 	a.Mode = 0444
 	data, _ := sf.ReadAll(ctx)
 	a.Size = uint64(len(data))
