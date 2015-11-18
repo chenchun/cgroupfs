@@ -35,7 +35,7 @@ var (
 // Dir implements both Node and Handle for the root directory.
 type Dir struct {
 	cgroupdir string
-	vethId    string
+	vethName  string
 }
 
 type FileInfo struct {
@@ -55,7 +55,7 @@ func (d Dir) Lookup(ctx context.Context, name string) (fusefs.Node, error) {
 		return File{}, nil
 	} else if name == "net_dev" {
 		if fileInfo, ok := fileMap[name]; ok {
-			return fileInfo.initFunc(d.vethId), nil
+			return fileInfo.initFunc(d.vethName), nil
 		}
 	} else if fileInfo, ok := fileMap[name]; ok {
 		mountPoint, err := cgroups.FindCgroupMountpoint(fileInfo.subsysName)

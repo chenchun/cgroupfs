@@ -16,7 +16,7 @@ var (
 )
 
 type NetDevFile struct {
-	vethId string
+	vethName string
 }
 
 func init() {
@@ -27,8 +27,8 @@ func init() {
 	}
 }
 
-func NewNetDevFile(vethId string) fusefs.Node {
-	return NetDevFile{vethId}
+func NewNetDevFile(vethName string) fusefs.Node {
+	return NetDevFile{vethName}
 }
 
 func (nd NetDevFile) Attr(ctx context.Context, a *fuse.Attr) error {
@@ -40,11 +40,11 @@ func (nd NetDevFile) Attr(ctx context.Context, a *fuse.Attr) error {
 }
 
 func (nd NetDevFile) ReadAll(ctx context.Context) ([]byte, error) {
-	netDev, err := getNetDevFromNetFile(nd.vethId)
-	return []byte(netDev), err 
+	netDev, err := getNetDevFromNetFile(nd.vethName)
+	return []byte(netDev), err
 }
 
-func getNetDevFromNetFile(vethId string) (string, error) {
+func getNetDevFromNetFile(vethName string) (string, error) {
 	rawContent, err := ioutil.ReadFile(NET_DEV_FILE)
 	if err != nil {
 		return "", err
@@ -61,8 +61,8 @@ func getNetDevFromNetFile(vethId string) (string, error) {
 			buffer.WriteString(line)
 			buffer.WriteString("\n")
 		}
-		if len(vethId) != 0 && strings.HasPrefix(line, vethId) {
-			buffer.WriteString(replaceVethNameWithEth0(line, vethId))
+		if len(vethName) != 0 && strings.HasPrefix(line, vethName) {
+			buffer.WriteString(replaceVethNameWithEth0(line, vethName))
 			buffer.WriteString("\n")
 			break
 		}
@@ -71,6 +71,6 @@ func getNetDevFromNetFile(vethId string) (string, error) {
 	return buffer.String(), nil
 }
 
-func replaceVethNameWithEth0(content, vethId string) string {
-	return strings.Replace(content, vethId, "  eth0", 1)
+func replaceVethNameWithEth0(content, vethName string) string {
+	return strings.Replace(content, vethName, "  eth0", 1)
 }

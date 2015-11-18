@@ -13,7 +13,7 @@ import (
 	"github.com/chenchun/cgroupfs/fs"
 )
 
-func Serve(mountPoint, cgroupDir, vethId string) error {
+func Serve(mountPoint, cgroupDir, vethName string) error {
 	c, err := fuse.Mount(
 		mountPoint,
 		fuse.FSName("cgroupfs"),
@@ -27,7 +27,7 @@ func Serve(mountPoint, cgroupDir, vethId string) error {
 	defer c.Close()
 	go handleStopSignals(mountPoint)
 
-	err = fusefs.Serve(c, fs.FS{cgroupDir, vethId})
+	err = fusefs.Serve(c, fs.FS{cgroupDir, vethName})
 	if err != nil {
 		return err
 	}

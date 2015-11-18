@@ -13,7 +13,7 @@ import (
 
 var Usage = func() {
 	fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
-	fmt.Fprintf(os.Stderr, "  %s MOUNTPOINT CGROUP_DIR [VETH_ID]\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "  %s MOUNTPOINT CGROUP_DIR [VETH_NAME]\n", os.Args[0])
 	flag.PrintDefaults()
 }
 
@@ -25,11 +25,11 @@ func main() {
 		Usage()
 		os.Exit(2)
 	}
-	vethId := ""
+	vethName := ""
 	if flag.NArg() == 3 {
-		vethId = flag.Arg(2)
+		vethName = flag.Arg(2)
 	}
-	if err := cgroupfs.Serve(flag.Arg(0), flag.Arg(1), vethId); err != nil {
+	if err := cgroupfs.Serve(flag.Arg(0), flag.Arg(1), vethName); err != nil {
 		log.Fatal(err)
 	}
 }
