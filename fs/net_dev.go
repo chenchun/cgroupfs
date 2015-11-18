@@ -4,7 +4,6 @@ import (
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
 	"bytes"
-	"fmt"
 	"golang.org/x/net/context"
 	"io/ioutil"
 	"strings"
@@ -52,7 +51,6 @@ func getNetDevFromNetFile(vethId string) (string, error) {
 	}
 
 	buffer.Reset()
-	found := false
 	for index, line := range strings.Split(string(rawContent), "\n") {
 		// skip empty line
 		if len(line) == 0 {
@@ -63,16 +61,11 @@ func getNetDevFromNetFile(vethId string) (string, error) {
 			buffer.WriteString(line)
 			buffer.WriteString("\n")
 		}
-		if strings.HasPrefix(line, vethId) {
+		if len(vethId) != 0 && strings.HasPrefix(line, vethId) {
 			buffer.WriteString(replaceVethNameWithEth0(line, vethId))
 			buffer.WriteString("\n")
-			found = true
 			break
 		}
-	}
-
-	if !found {
-		return "", fmt.Errorf("net info file %s does not contain veth %s", NET_DEV_FILE, vethId)
 	}
 
 	return buffer.String(), nil
