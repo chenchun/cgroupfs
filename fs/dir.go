@@ -53,16 +53,20 @@ func (Dir) Attr(ctx context.Context, a *fuse.Attr) error {
 func (d Dir) Lookup(ctx context.Context, name string) (fusefs.Node, error) {
 	if name == "hello" {
 		return File{}, nil
-	} else if name == "net_dev" {
-		if fileInfo, ok := fileMap[name]; ok {
-			return fileInfo.initFunc(d.vethName), nil
-		}
 	} else if fileInfo, ok := fileMap[name]; ok {
-		mountPoint, err := cgroups.FindCgroupMountpoint(fileInfo.subsysName)
-		if err != nil {
-			return nil, fuse.ENODATA
+		var path string
+
+		if len(fileInfo.subsysName) == 0 {
+			path = d.vethName
+		} else {
+			mountPoint, err := cgroups.FindCgroupMountpoint(fileInfo.subsysName)
+			if err != nil {
+				return nil, fuse.ENODATA
+			}
+			path = filepath.Join(mountPoint, d.cgroupdir)
 		}
-		return fileInfo.initFunc(filepath.Join(mountPoint, d.cgroupdir)), nil
+
+		return fileInfo.initFunc(path), nil
 	}
 	return nil, fuse.ENOENT
 }

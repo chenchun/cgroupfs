@@ -1,12 +1,13 @@
 package fs
 
 import (
-	"bazil.org/fuse"
-	fusefs "bazil.org/fuse/fs"
 	"bytes"
-	"golang.org/x/net/context"
 	"io/ioutil"
 	"strings"
+
+	"bazil.org/fuse"
+	fusefs "bazil.org/fuse/fs"
+	"golang.org/x/net/context"
 )
 
 const NET_DEV_FILE = "/proc/net/dev"
