@@ -94,7 +94,7 @@ func (sf StatFile) getStatInfo(buffer *bytes.Buffer, cpuIDs []int) {
 		buffer.WriteString(" ")
 		buffer.WriteString(strconv.FormatUint(item, 10))
 	}
-
+	buffer.WriteString("\n")
 	buffer.Write(tmpBuffer.Bytes())
 }
 
