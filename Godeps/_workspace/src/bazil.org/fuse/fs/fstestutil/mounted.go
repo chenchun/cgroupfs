@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/bazil.org/fuse"
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/bazil.org/fuse/fs"
+	"bazil.org/fuse"
+	"bazil.org/fuse/fs"
 )
 
 // Mount contains information about the mount for the test to use.

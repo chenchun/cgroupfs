@@ -4,9 +4,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/bazil.org/fuse"
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/bazil.org/fuse/fs"
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"bazil.org/fuse"
+	"bazil.org/fuse/fs"
+	"golang.org/x/net/context"
 )
 
 type nothing struct{}

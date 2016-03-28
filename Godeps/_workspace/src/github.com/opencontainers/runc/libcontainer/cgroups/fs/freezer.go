@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
 type FreezerGroup struct {
@@ -18,23 +18,18 @@ func (s *FreezerGroup) Name() string {
 	return "freezer"
 }
 
-func (s *FreezerGroup) Apply(d *data) error {
-	dir, err := d.join("freezer")
+func (s *FreezerGroup) Apply(d *cgroupData) error {
+	_, err := d.join("freezer")
 	if err != nil && !cgroups.IsNotFound(err) {
 		return err
 	}
-
-	if err := s.Set(dir, d.c); err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func (s *FreezerGroup) Set(path string, cgroup *configs.Cgroup) error {
-	switch cgroup.Freezer {
+	switch cgroup.Resources.Freezer {
 	case configs.Frozen, configs.Thawed:
-		if err := writeFile(path, "freezer.state", string(cgroup.Freezer)); err != nil {
+		if err := writeFile(path, "freezer.state", string(cgroup.Resources.Freezer)); err != nil {
 			return err
 		}
 
@@ -43,7 +38,7 @@ func (s *FreezerGroup) Set(path string, cgroup *configs.Cgroup) error {
 			if err != nil {
 				return err
 			}
-			if strings.TrimSpace(state) == string(cgroup.Freezer) {
+			if strings.TrimSpace(state) == string(cgroup.Resources.Freezer) {
 				break
 			}
 			time.Sleep(1 * time.Millisecond)
@@ -51,13 +46,13 @@ func (s *FreezerGroup) Set(path string, cgroup *configs.Cgroup) error {
 	case configs.Undefined:
 		return nil
 	default:
-		return fmt.Errorf("Invalid argument '%s' to freezer.state", string(cgroup.Freezer))
+		return fmt.Errorf("Invalid argument '%s' to freezer.state", string(cgroup.Resources.Freezer))
 	}
 
 	return nil
 }
 
-func (s *FreezerGroup) Remove(d *data) error {
+func (s *FreezerGroup) Remove(d *cgroupData) error {
 	return removePath(d.path("freezer"))
 }
 

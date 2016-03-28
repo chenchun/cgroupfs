@@ -11,11 +11,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/bazil.org/fuse"
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/bazil.org/fuse/fs"
-	_ "github.com/chenchun/cgroupfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/bazil.org/fuse/fuseutil"
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"bazil.org/fuse"
+	"bazil.org/fuse/fs"
+	_ "bazil.org/fuse/fs/fstestutil"
+	"bazil.org/fuse/fuseutil"
+	"golang.org/x/net/context"
 )
 
 func usage() {

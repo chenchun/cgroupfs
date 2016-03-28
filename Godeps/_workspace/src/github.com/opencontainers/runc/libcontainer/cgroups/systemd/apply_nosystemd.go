@@ -5,8 +5,8 @@ package systemd
 import (
 	"fmt"
 
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
 type Manager struct {
@@ -23,6 +23,10 @@ func (m *Manager) Apply(pid int) error {
 }
 
 func (m *Manager) GetPids() ([]int, error) {
+	return nil, fmt.Errorf("Systemd not supported")
+}
+
+func (m *Manager) GetAllPids() ([]int, error) {
 	return nil, fmt.Errorf("Systemd not supported")
 }
 

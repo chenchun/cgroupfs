@@ -3,8 +3,9 @@
 package fs
 
 import (
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/runc/libcontainer/system"
 )
 
 type DevicesGroup struct {
@@ -14,28 +15,40 @@ func (s *DevicesGroup) Name() string {
 	return "devices"
 }
 
-func (s *DevicesGroup) Apply(d *data) error {
-	dir, err := d.join("devices")
+func (s *DevicesGroup) Apply(d *cgroupData) error {
+	_, err := d.join("devices")
 	if err != nil {
 		// We will return error even it's `not found` error, devices
 		// cgroup is hard requirement for container's security.
 		return err
 	}
-
-	if err := s.Set(dir, d.c); err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func (s *DevicesGroup) Set(path string, cgroup *configs.Cgroup) error {
-	if !cgroup.AllowAllDevices {
+	if system.RunningInUserNS() {
+		return nil
+	}
+
+	devices := cgroup.Resources.Devices
+	if len(devices) > 0 {
+		for _, dev := range devices {
+			file := "devices.deny"
+			if dev.Allow {
+				file = "devices.allow"
+			}
+			if err := writeFile(path, file, dev.CgroupString()); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if !cgroup.Resources.AllowAllDevices {
 		if err := writeFile(path, "devices.deny", "a"); err != nil {
 			return err
 		}
 
-		for _, dev := range cgroup.AllowedDevices {
+		for _, dev := range cgroup.Resources.AllowedDevices {
 			if err := writeFile(path, "devices.allow", dev.CgroupString()); err != nil {
 				return err
 			}
@@ -47,7 +60,7 @@ func (s *DevicesGroup) Set(path string, cgroup *configs.Cgroup) error {
 		return err
 	}
 
-	for _, dev := range cgroup.DeniedDevices {
+	for _, dev := range cgroup.Resources.DeniedDevices {
 		if err := writeFile(path, "devices.deny", dev.CgroupString()); err != nil {
 			return err
 		}
@@ -56,7 +69,7 @@ func (s *DevicesGroup) Set(path string, cgroup *configs.Cgroup) error {
 	return nil
 }
 
-func (s *DevicesGroup) Remove(d *data) error {
+func (s *DevicesGroup) Remove(d *cgroupData) error {
 	return removePath(d.path("devices"))
 }
 

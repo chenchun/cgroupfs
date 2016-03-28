@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/configs"
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/system"
+	"github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/runc/libcontainer/system"
 )
 
 const (
@@ -28,7 +28,7 @@ func (s *CpuacctGroup) Name() string {
 	return "cpuacct"
 }
 
-func (s *CpuacctGroup) Apply(d *data) error {
+func (s *CpuacctGroup) Apply(d *cgroupData) error {
 	// we just want to join this group even though we don't set anything
 	if _, err := d.join("cpuacct"); err != nil && !cgroups.IsNotFound(err) {
 		return err
@@ -41,7 +41,7 @@ func (s *CpuacctGroup) Set(path string, cgroup *configs.Cgroup) error {
 	return nil
 }
 
-func (s *CpuacctGroup) Remove(d *data) error {
+func (s *CpuacctGroup) Remove(d *cgroupData) error {
 	return removePath(d.path("cpuacct"))
 }
 

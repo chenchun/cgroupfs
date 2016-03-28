@@ -7,24 +7,24 @@ import (
 	"log"
 	"os"
 
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/bazil.org/fuse"
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/bazil.org/fuse/fs"
-	_ "github.com/chenchun/cgroupfs/Godeps/_workspace/src/bazil.org/fuse/fs/fstestutil"
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/golang.org/x/net/context"
+	"bazil.org/fuse"
+	"bazil.org/fuse/fs"
+	_ "bazil.org/fuse/fs/fstestutil"
+	"golang.org/x/net/context"
 )
 
-var Usage = func() {
+func usage() {
 	fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
 	fmt.Fprintf(os.Stderr, "  %s MOUNTPOINT\n", os.Args[0])
 	flag.PrintDefaults()
 }
 
 func main() {
-	flag.Usage = Usage
+	flag.Usage = usage
 	flag.Parse()
 
 	if flag.NArg() != 1 {
-		Usage()
+		usage()
 		os.Exit(2)
 	}
 	mountpoint := flag.Arg(0)

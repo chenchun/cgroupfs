@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
 type HugetlbGroup struct {
@@ -18,21 +18,16 @@ func (s *HugetlbGroup) Name() string {
 	return "hugetlb"
 }
 
-func (s *HugetlbGroup) Apply(d *data) error {
-	dir, err := d.join("hugetlb")
+func (s *HugetlbGroup) Apply(d *cgroupData) error {
+	_, err := d.join("hugetlb")
 	if err != nil && !cgroups.IsNotFound(err) {
 		return err
 	}
-
-	if err := s.Set(dir, d.c); err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func (s *HugetlbGroup) Set(path string, cgroup *configs.Cgroup) error {
-	for _, hugetlb := range cgroup.HugetlbLimit {
+	for _, hugetlb := range cgroup.Resources.HugetlbLimit {
 		if err := writeFile(path, strings.Join([]string{"hugetlb", hugetlb.Pagesize, "limit_in_bytes"}, "."), strconv.FormatUint(hugetlb.Limit, 10)); err != nil {
 			return err
 		}
@@ -41,7 +36,7 @@ func (s *HugetlbGroup) Set(path string, cgroup *configs.Cgroup) error {
 	return nil
 }
 
-func (s *HugetlbGroup) Remove(d *data) error {
+func (s *HugetlbGroup) Remove(d *cgroupData) error {
 	return removePath(d.path("hugetlb"))
 }
 

@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/chenchun/cgroupfs/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
 type MemoryGroup struct {
@@ -21,16 +21,22 @@ func (s *MemoryGroup) Name() string {
 	return "memory"
 }
 
-func (s *MemoryGroup) Apply(d *data) (err error) {
+func (s *MemoryGroup) Apply(d *cgroupData) (err error) {
 	path, err := d.path("memory")
-	if err != nil {
-		if cgroups.IsNotFound(err) {
-			return nil
-		}
+	if err != nil && !cgroups.IsNotFound(err) {
 		return err
 	}
-	if err := os.MkdirAll(path, 0755); err != nil {
-		return err
+	if memoryAssigned(d.config) {
+		if path != "" {
+			if err := os.MkdirAll(path, 0755); err != nil {
+				return err
+			}
+		}
+		// We have to set kernel memory here, as we can't change it once
+		// processes have been attached.
+		if err := s.SetKernelMemory(path, d.config); err != nil {
+			return err
+		}
 	}
 
 	defer func() {
@@ -39,60 +45,66 @@ func (s *MemoryGroup) Apply(d *data) (err error) {
 		}
 	}()
 
-	if err := s.Set(path, d.c); err != nil {
-		return err
-	}
-
 	// We need to join memory cgroup after set memory limits, because
 	// kmem.limit_in_bytes can only be set when the cgroup is empty.
-	if _, err = d.join("memory"); err != nil {
+	_, err = d.join("memory")
+	if err != nil && !cgroups.IsNotFound(err) {
 		return err
 	}
+	return nil
+}
 
+func (s *MemoryGroup) SetKernelMemory(path string, cgroup *configs.Cgroup) error {
+	// This has to be done separately because it has special constraints (it
+	// can't be done after there are processes attached to the cgroup).
+	if cgroup.Resources.KernelMemory > 0 {
+		if err := writeFile(path, "memory.kmem.limit_in_bytes", strconv.FormatInt(cgroup.Resources.KernelMemory, 10)); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 func (s *MemoryGroup) Set(path string, cgroup *configs.Cgroup) error {
-	if cgroup.Memory != 0 {
-		if err := writeFile(path, "memory.limit_in_bytes", strconv.FormatInt(cgroup.Memory, 10)); err != nil {
+	if cgroup.Resources.Memory != 0 {
+		if err := writeFile(path, "memory.limit_in_bytes", strconv.FormatInt(cgroup.Resources.Memory, 10)); err != nil {
 			return err
 		}
 	}
-	if cgroup.MemoryReservation != 0 {
-		if err := writeFile(path, "memory.soft_limit_in_bytes", strconv.FormatInt(cgroup.MemoryReservation, 10)); err != nil {
+	if cgroup.Resources.MemoryReservation != 0 {
+		if err := writeFile(path, "memory.soft_limit_in_bytes", strconv.FormatInt(cgroup.Resources.MemoryReservation, 10)); err != nil {
 			return err
 		}
 	}
-	if cgroup.MemorySwap > 0 {
-		if err := writeFile(path, "memory.memsw.limit_in_bytes", strconv.FormatInt(cgroup.MemorySwap, 10)); err != nil {
+	if cgroup.Resources.MemorySwap > 0 {
+		if err := writeFile(path, "memory.memsw.limit_in_bytes", strconv.FormatInt(cgroup.Resources.MemorySwap, 10)); err != nil {
 			return err
 		}
 	}
-	if cgroup.KernelMemory > 0 {
-		if err := writeFile(path, "memory.kmem.limit_in_bytes", strconv.FormatInt(cgroup.KernelMemory, 10)); err != nil {
+	if cgroup.Resources.KernelMemoryTCP != 0 {
+		if err := writeFile(path, "memory.kmem.tcp.limit_in_bytes", strconv.FormatInt(cgroup.Resources.KernelMemoryTCP, 10)); err != nil {
 			return err
 		}
 	}
-
-	if cgroup.OomKillDisable {
+	if cgroup.Resources.OomKillDisable {
 		if err := writeFile(path, "memory.oom_control", "1"); err != nil {
 			return err
 		}
 	}
-	if cgroup.MemorySwappiness >= 0 && cgroup.MemorySwappiness <= 100 {
-		if err := writeFile(path, "memory.swappiness", strconv.FormatInt(cgroup.MemorySwappiness, 10)); err != nil {
+	if cgroup.Resources.MemorySwappiness == nil || int64(*cgroup.Resources.MemorySwappiness) == -1 {
+		return nil
+	} else if int64(*cgroup.Resources.MemorySwappiness) >= 0 && int64(*cgroup.Resources.MemorySwappiness) <= 100 {
+		if err := writeFile(path, "memory.swappiness", strconv.FormatInt(*cgroup.Resources.MemorySwappiness, 10)); err != nil {
 			return err
 		}
-	} else if cgroup.MemorySwappiness == -1 {
-		return nil
 	} else {
-		return fmt.Errorf("invalid value:%d. valid memory swappiness range is 0-100", cgroup.MemorySwappiness)
+		return fmt.Errorf("invalid value:%d. valid memory swappiness range is 0-100", int64(*cgroup.Resources.MemorySwappiness))
 	}
 
 	return nil
 }
 
-func (s *MemoryGroup) Remove(d *data) error {
+func (s *MemoryGroup) Remove(d *cgroupData) error {
 	return removePath(d.path("memory"))
 }
 
@@ -132,8 +144,23 @@ func (s *MemoryGroup) GetStats(path string, stats *cgroups.Stats) error {
 		return err
 	}
 	stats.MemoryStats.KernelUsage = kernelUsage
+	kernelTCPUsage, err := getMemoryData(path, "kmem.tcp")
+	if err != nil {
+		return err
+	}
+	stats.MemoryStats.KernelTCPUsage = kernelTCPUsage
 
 	return nil
+}
+
+func memoryAssigned(cgroup *configs.Cgroup) bool {
+	return cgroup.Resources.Memory != 0 ||
+		cgroup.Resources.MemoryReservation != 0 ||
+		cgroup.Resources.MemorySwap > 0 ||
+		cgroup.Resources.KernelMemory > 0 ||
+		cgroup.Resources.KernelMemoryTCP > 0 ||
+		cgroup.Resources.OomKillDisable ||
+		(cgroup.Resources.MemorySwappiness != nil && *cgroup.Resources.MemorySwappiness != -1)
 }
 
 func getMemoryData(path, name string) (cgroups.MemoryData, error) {
@@ -146,6 +173,7 @@ func getMemoryData(path, name string) (cgroups.MemoryData, error) {
 	usage := strings.Join([]string{moduleName, "usage_in_bytes"}, ".")
 	maxUsage := strings.Join([]string{moduleName, "max_usage_in_bytes"}, ".")
 	failcnt := strings.Join([]string{moduleName, "failcnt"}, ".")
+	limit := strings.Join([]string{moduleName, "limit_in_bytes"}, ".")
 
 	value, err := getCgroupParamUint(path, usage)
 	if err != nil {
@@ -171,6 +199,14 @@ func getMemoryData(path, name string) (cgroups.MemoryData, error) {
 		return cgroups.MemoryData{}, fmt.Errorf("failed to parse %s - %v", failcnt, err)
 	}
 	memoryData.Failcnt = value
+	value, err = getCgroupParamUint(path, limit)
+	if err != nil {
+		if moduleName != "memory" && os.IsNotExist(err) {
+			return cgroups.MemoryData{}, nil
+		}
+		return cgroups.MemoryData{}, fmt.Errorf("failed to parse %s - %v", limit, err)
+	}
+	memoryData.Limit = value
 
 	return memoryData, nil
 }
