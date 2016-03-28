@@ -20,4 +20,4 @@ Like lxcfs https://github.com/lxc/lxcfs, cgroupfs provides an emulated /proc/mem
     Swap:            0          0          0
 
 # build
-    go build -o cgroupfs github.com/chenchun/cgroupfs/cli
+    make
