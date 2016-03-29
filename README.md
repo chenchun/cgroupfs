@@ -37,7 +37,7 @@ Like lxcfs https://github.com/lxc/lxcfs, cgroupfs provides an emulated /proc/mem
 # FAQ
 
 
-## fusermount: exec: "fusermount": executable file not found in $PATH
+**1. fusermount: exec: "fusermount": executable file not found in $PATH**
 
 You should install fuse
 
@@ -45,7 +45,7 @@ You should install fuse
     On debian/ubuntu
     sudo apt-get install fuse
 
-## meminfo file cannot be mounted because it is located inside "/proc"
+**2. meminfo file cannot be mounted because it is located inside "/proc"**
 
 You should update docker to 1.11+ or patch the related changes https://github.com/opencontainers/runc/pull/452, https://github.com/opencontainers/runc/pull/560
 
