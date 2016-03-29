@@ -8,7 +8,7 @@ docker-build:
 	@docker build -t ${build_image} .
 
 get-binary:
-	@echo "copy binary from image..."
+	@echo "Copy binary \"cgroupfs\" from image to current directory..."
 	@docker run --name=${container_name} -d ${build_image} sleep 1000
 	@docker cp ${container_name}:/tmp/${binary_name} .
 	@docker rm -v -f ${container_name}

@@ -2,16 +2,31 @@
 
 Like lxcfs https://github.com/lxc/lxcfs, cgroupfs provides an emulated /proc/meminfo, /proc/cpuinfo... for containers.
 
+# build
+    make
+
 # Usage
 
-    container_id=`docker create --device /dev/fuse --cap-add SYS_ADMIN -v /tmp/cgroupfs/meminfo:/proc/meminfo -m=15m ubuntu sleep 213133`
+    container_id=`docker create -v /tmp/cgroupfs/meminfo:/proc/meminfo -m=15m ubuntu sleep 213133`
 
-    ## in the second console tab
-    go run cli/cli.go /tmp/cgroupfs /docker/$container_id
+    ## In the second console tab
+    mkdir /tmp/cgroupfs
+    ./cgroupfs /tmp/cgroupfs /docker/$container_id
 
-    ## go to the first tab
+    ## Go to the first tab
     docker start $container_id
 
+    ## Take a look at /tmp/cgroupfs/meminfo now
+    ## cgroupfs file system should be able to show the memory usage of the container
+    root@linux-dev:/home/vagrant# cat /tmp/cgroupfs/meminfo
+    MemTotal:       15360 kB
+    MemFree:        13432 kB
+    MemAvailable:   13432 kB
+    Buffers:        0 kB
+    Cached:         1804 kB
+    SwapCached:     0 kB
+
+    ## Enter docker container, you should see free is showing the real usage
     docker exec -it $container_id bash
     root@251d4d18bca6:/# free -m
                  total       used       free     shared    buffers     cached
@@ -19,5 +34,19 @@ Like lxcfs https://github.com/lxc/lxcfs, cgroupfs provides an emulated /proc/mem
     -/+ buffers/cache:          0         14
     Swap:            0          0          0
 
-# build
-    make
+# FAQ
+
+
+## fusermount: exec: "fusermount": executable file not found in $PATH
+
+You should install fuse
+
+
+    On debian/ubuntu
+    sudo apt-get install fuse
+
+## meminfo file cannot be mounted because it is located inside "/proc"
+
+You should update docker to 1.11+ or patch the related changes https://github.com/opencontainers/runc/pull/452, https://github.com/opencontainers/runc/pull/560
+
+See related issues https://github.com/opencontainers/runc/issues/400
