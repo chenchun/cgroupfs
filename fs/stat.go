@@ -20,7 +20,10 @@ type StatFile struct {
 
 var (
 	statModifier *regexp.Regexp = nil
+	statSep      *regexp.Regexp = nil
 )
+
+const MAXFIELDS int = 11
 
 func NewStatFile(cgroupdir string) fusefs.Node {
 	return StatFile{cgroupdir}
@@ -45,7 +48,7 @@ func (sf StatFile) ReadAll(ctx context.Context) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func (sf StatFile) getStatInfo(buffer *bytes.Buffer, cpuIDs []int) {
+func (sf StatFile) getStatInfo(buffer *bytes.Buffer, cpuIDs map[uint64]uint64) {
 	buffer.Reset()
 
 	if cpuIDs == nil {
@@ -58,8 +61,8 @@ func (sf StatFile) getStatInfo(buffer *bytes.Buffer, cpuIDs []int) {
 	}
 
 	var (
-		count     int      = 0
-		cpuStat   []uint64 = nil
+		count     int = 0
+		cpuStat       = make([]uint64, MAXFIELDS-1)
 		num       uint64
 		tmpBuffer bytes.Buffer
 	)
@@ -69,13 +72,13 @@ func (sf StatFile) getStatInfo(buffer *bytes.Buffer, cpuIDs []int) {
 		if len(groups) == 2 {
 			// we do not check the error after calling parseUnit, because
 			// kernel guarantees for us
-			if len(groups[1]) == 0 && cpuStat == nil {
-				cpuStat = make([]uint64, len(strings.Split(line, " ")))
+			if len(groups[1]) == 0 {
+				continue
 			}
 
 			cpuID, _ := parseUint(string(groups[1]), 10, 32)
-			if binarySearchInt(cpuIDs, int(cpuID)) {
-				for i, item := range strings.Split(line, " ")[1:] {
+			if _, ok := cpuIDs[cpuID]; ok {
+				for i, item := range statSep.Split(line, MAXFIELDS)[1:] {
 					num, _ = parseUint(item, 10, 64)
 					cpuStat[i] += num
 				}
@@ -89,7 +92,7 @@ func (sf StatFile) getStatInfo(buffer *bytes.Buffer, cpuIDs []int) {
 		}
 	}
 
-	buffer.WriteString("cpu")
+	buffer.WriteString("cpu ")
 	for _, item := range cpuStat {
 		buffer.WriteString(" ")
 		buffer.WriteString(strconv.FormatUint(item, 10))
@@ -106,6 +109,7 @@ func init() {
 			subsysName: "cpuset",
 		}
 
-		statModifier, _ = regexp.Compile("cpu(\\d)?")
+		statModifier, _ = regexp.Compile("cpu(\\d*)")
+		statSep, _ = regexp.Compile("\\s+")
 	}
 }

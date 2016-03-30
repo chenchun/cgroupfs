@@ -44,7 +44,7 @@ func (ci CpuInfoFile) ReadAll(ctx context.Context) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func (ci CpuInfoFile) getCpuInfo(buffer *bytes.Buffer, cpuIDs []int) {
+func (ci CpuInfoFile) getCpuInfo(buffer *bytes.Buffer, cpuIDs map[uint64]uint64) {
 	if cpuIDs == nil {
 		return
 	}
@@ -61,7 +61,7 @@ func (ci CpuInfoFile) getCpuInfo(buffer *bytes.Buffer, cpuIDs []int) {
 			// we do not check the error after calling parseUnit, because
 			// kernel guarantees for us
 			cpuID, _ := parseUint(string(groups[1]), 10, 32)
-			if binarySearchInt(cpuIDs, int(cpuID)) {
+			if _, ok := cpuIDs[cpuID]; ok {
 				buffer.WriteString(cpuinfoModifier.ReplaceAllString(line, fmt.Sprintf("%-16s: %d", "processor", count)))
 				buffer.WriteString("\n\n")
 				count++
@@ -78,6 +78,6 @@ func init() {
 			subsysName: "cpuset",
 		}
 
-		cpuinfoModifier, _ = regexp.Compile("processor\\s+?:\\s+?(\\d)")
+		cpuinfoModifier, _ = regexp.Compile("processor\\s+?:\\s+?(\\d+)")
 	}
 }
