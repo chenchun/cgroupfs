@@ -1,6 +1,7 @@
 package cgroupfs
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -13,13 +14,14 @@ import (
 	"github.com/chenchun/cgroupfs/fs"
 )
 
-func Serve(mountPoint, cgroupDir, vethName string) error {
+func Serve(mountPoint, cgroupDir string) error {
 	c, err := fuse.Mount(
 		mountPoint,
 		fuse.FSName("cgroupfs"),
 		fuse.Subtype("cgroupfs"),
 		fuse.LocalVolume(),
 		fuse.VolumeName("cgroup volume"),
+		fuse.AllowOther(),
 	)
 	if err != nil {
 		return err
@@ -27,7 +29,18 @@ func Serve(mountPoint, cgroupDir, vethName string) error {
 	defer c.Close()
 	go handleStopSignals(mountPoint)
 
-	err = fusefs.Serve(c, fs.FS{cgroupDir, vethName})
+	var srv *fusefs.Server
+	if os.Getenv("FUSE_DEBUG") != "" {
+		srv = fusefs.New(c, &fusefs.Config{
+			Debug: func(msg interface{}) {
+				fmt.Printf("%s\n", msg)
+			},
+		})
+	} else {
+		srv = fusefs.New(c, nil)
+	}
+
+	err = srv.Serve(fs.FS{cgroupDir})
 	if err != nil {
 		return err
 	}

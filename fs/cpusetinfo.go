@@ -9,7 +9,8 @@ import (
 	"strings"
 
 	"bazil.org/fuse"
-	fusefs "bazil.org/fuse/fs"
+	"bazil.org/fuse/fs"
+	"bazil.org/fuse/fuseutil"
 	"golang.org/x/net/context"
 )
 
@@ -21,20 +22,35 @@ var (
 	cpuinfoModifier *regexp.Regexp = nil
 )
 
-func NewCpuInfoFile(cgroupdir string) fusefs.Node {
-	return CpuInfoFile{cgroupdir}
+const (
+	CpuInfoName = "cpuinfo"
+)
+
+func NewCpuInfoFile(cgroupdir string, info *FileInfo) {
+	info.node = CpuInfoFile{cgroupdir}
 }
 
 func (ci CpuInfoFile) Attr(ctx context.Context, a *fuse.Attr) error {
 	a.Inode = INODE_CPUINFO
 	a.Mode = 0444
-	data, _ := ci.ReadAll(ctx)
+	data, _ := ci.readAll()
 	a.Size = uint64(len(data))
 
 	return nil
 }
 
-func (ci CpuInfoFile) ReadAll(ctx context.Context) ([]byte, error) {
+func (ci CpuInfoFile) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
+	resp.Flags |= fuse.OpenDirectIO
+	return ci, nil
+}
+
+func (ci CpuInfoFile) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
+	data, _ := ci.readAll()
+	fuseutil.HandleRead(req, resp, data)
+	return nil
+}
+
+func (ci CpuInfoFile) readAll() ([]byte, error) {
 	var buffer bytes.Buffer
 
 	if cpuinfoModifier != nil {
@@ -72,7 +88,7 @@ func (ci CpuInfoFile) getCpuInfo(buffer *bytes.Buffer, cpuIDs map[uint64]uint64)
 
 func init() {
 	if runtime.GOOS == "linux" {
-		fileMap["cpuinfo"] = FileInfo{
+		fileMap[CpuInfoName] = &FileInfo{
 			initFunc:   NewCpuInfoFile,
 			inode:      INODE_CPUINFO,
 			subsysName: "cpuset",

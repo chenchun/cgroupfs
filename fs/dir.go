@@ -8,9 +8,7 @@ import (
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
 	_ "bazil.org/fuse/fs/fstestutil"
-
 	"github.com/opencontainers/runc/libcontainer/cgroups"
-
 	"golang.org/x/net/context"
 )
 
@@ -22,11 +20,10 @@ const (
 	INODE_DISKSTATS
 	INODE_CPUINFO
 	INODE_STAT
-	INODE_NET_DEV
 )
 
 var (
-	fileMap = make(map[string]FileInfo)
+	fileMap = make(map[string]*FileInfo)
 
 	direntsOnce sync.Once
 	dirents     []fuse.Dirent
@@ -35,11 +32,11 @@ var (
 // Dir implements both Node and Handle for the root directory.
 type Dir struct {
 	cgroupdir string
-	vethName  string
 }
 
 type FileInfo struct {
-	initFunc   func(cgroupdir string) fusefs.Node
+	initFunc   func(cgroupdir string, info *FileInfo)
+	node       fusefs.Node
 	inode      uint64
 	subsysName string
 }
@@ -54,19 +51,13 @@ func (d Dir) Lookup(ctx context.Context, name string) (fusefs.Node, error) {
 	if name == "hello" {
 		return File{}, nil
 	} else if fileInfo, ok := fileMap[name]; ok {
-		var path string
-
-		if len(fileInfo.subsysName) == 0 {
-			path = d.vethName
-		} else {
-			mountPoint, err := cgroups.FindCgroupMountpoint(fileInfo.subsysName)
-			if err != nil {
-				return nil, fuse.ENODATA
-			}
-			path = filepath.Join(mountPoint, d.cgroupdir)
+		mountPoint, err := cgroups.FindCgroupMountpoint(fileInfo.subsysName)
+		if err != nil {
+			return nil, fuse.ENODATA
 		}
 
-		return fileInfo.initFunc(path), nil
+		fileInfo.initFunc(filepath.Join(mountPoint, d.cgroupdir), fileInfo)
+		return fileInfo.node, nil
 	}
 	return nil, fuse.ENOENT
 }
@@ -79,4 +70,8 @@ func (Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 		}
 	})
 	return dirents, nil
+}
+
+func GetNode(name string) fusefs.Node {
+	return fileMap[name].node
 }

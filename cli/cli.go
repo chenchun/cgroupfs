@@ -25,11 +25,7 @@ func main() {
 		Usage()
 		os.Exit(2)
 	}
-	vethName := ""
-	if flag.NArg() == 3 {
-		vethName = flag.Arg(2)
-	}
-	if err := cgroupfs.Serve(flag.Arg(0), flag.Arg(1), vethName); err != nil {
+	if err := cgroupfs.Serve(flag.Arg(0), flag.Arg(1)); err != nil {
 		log.Fatal(err)
 	}
 }

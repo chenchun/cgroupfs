@@ -5,13 +5,11 @@ import (
 
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
-	_ "bazil.org/fuse/fs/fstestutil"
-
-	"golang.org/x/net/context"
-
+	"bazil.org/fuse/fuseutil"
 	"github.com/Sirupsen/logrus"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
+	"golang.org/x/net/context"
 )
 
 //http://man7.org/linux/man-pages/man5/proc.5.html /proc/meminfo fs/proc/meminfo.c
@@ -82,32 +80,47 @@ var (
 	memusage    = "memory.usage_in_bytes"
 )
 
+const (
+	MemInfoName = "meminfo"
+)
+
 type MemInfoFile struct {
 	cgroupdir string
 	memCgroup fs.MemoryGroup
 }
 
 func init() {
-	fileMap["meminfo"] = FileInfo{
+	fileMap[MemInfoName] = &FileInfo{
 		initFunc:   NewMemInfoFile,
 		inode:      INODE_MEMINFO,
 		subsysName: "memory",
 	}
 }
 
-func NewMemInfoFile(cgroupdir string) fusefs.Node {
-	return MemInfoFile{cgroupdir, fs.MemoryGroup{}}
+func NewMemInfoFile(cgroupdir string, info *FileInfo) {
+	info.node = MemInfoFile{cgroupdir, fs.MemoryGroup{}}
 }
 
 func (mi MemInfoFile) Attr(ctx context.Context, a *fuse.Attr) error {
 	a.Inode = INODE_MEMINFO
 	a.Mode = 0444
-	data, _ := mi.ReadAll(ctx)
+	data, _ := mi.readAll()
 	a.Size = uint64(len(data))
 	return nil
 }
 
-func (mi MemInfoFile) ReadAll(ctx context.Context) ([]byte, error) {
+func (mi MemInfoFile) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fusefs.Handle, error) {
+	resp.Flags |= fuse.OpenDirectIO
+	return mi, nil
+}
+
+func (mi MemInfoFile) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
+	data, _ := mi.readAll()
+	fuseutil.HandleRead(req, resp, data)
+	return nil
+}
+
+func (mi MemInfoFile) readAll() ([]byte, error) {
 	stats := cgroups.NewStats()
 	mi.memCgroup.GetStats(mi.cgroupdir, stats)
 	memStats := stats.MemoryStats

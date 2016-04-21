@@ -10,7 +10,8 @@ import (
 	"strings"
 
 	"bazil.org/fuse"
-	fusefs "bazil.org/fuse/fs"
+	"bazil.org/fuse/fs"
+	"bazil.org/fuse/fuseutil"
 	"golang.org/x/net/context"
 )
 
@@ -23,22 +24,36 @@ var (
 	statSep      *regexp.Regexp = nil
 )
 
-const MAXFIELDS int = 11
+const (
+	MAXFIELDS   = 11
+	CpuStatName = "stat"
+)
 
-func NewStatFile(cgroupdir string) fusefs.Node {
-	return StatFile{cgroupdir}
+func NewStatFile(cgroupdir string, info *FileInfo) {
+	info.node = StatFile{cgroupdir}
 }
 
 func (sf StatFile) Attr(ctx context.Context, a *fuse.Attr) error {
 	a.Inode = INODE_STAT
 	a.Mode = 0444
-	data, _ := sf.ReadAll(ctx)
+	data, _ := sf.readAll()
 	a.Size = uint64(len(data))
 
 	return nil
 }
 
-func (sf StatFile) ReadAll(ctx context.Context) ([]byte, error) {
+func (sf StatFile) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
+	resp.Flags |= fuse.OpenDirectIO
+	return sf, nil
+}
+
+func (sf StatFile) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
+	data, _ := sf.readAll()
+	fuseutil.HandleRead(req, resp, data)
+	return nil
+}
+
+func (sf StatFile) readAll() ([]byte, error) {
 	var buffer bytes.Buffer
 
 	if statModifier != nil {
@@ -103,7 +118,7 @@ func (sf StatFile) getStatInfo(buffer *bytes.Buffer, cpuIDs map[uint64]uint64) {
 
 func init() {
 	if runtime.GOOS == "linux" {
-		fileMap["stat"] = FileInfo{
+		fileMap[CpuStatName] = &FileInfo{
 			initFunc:   NewStatFile,
 			inode:      INODE_STAT,
 			subsysName: "cpuset",

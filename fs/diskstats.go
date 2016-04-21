@@ -1,15 +1,14 @@
 package fs
 
 import (
-	"bazil.org/fuse"
-	fusefs "bazil.org/fuse/fs"
-	_ "bazil.org/fuse/fs/fstestutil"
-
 	"bufio"
 	"bytes"
 	"fmt"
 	"io/ioutil"
 
+	"bazil.org/fuse"
+	fusefs "bazil.org/fuse/fs"
+	"bazil.org/fuse/fuseutil"
 	"github.com/Sirupsen/logrus"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
@@ -22,16 +21,20 @@ type DiskStatsFile struct {
 	blkioGroup fs.BlkioGroup
 }
 
+const (
+	DiskStatName = "diskstats"
+)
+
 func init() {
-	fileMap["diskstats"] = FileInfo{
+	fileMap[DiskStatName] = &FileInfo{
 		initFunc:   NewDiskStatsFile,
 		inode:      INODE_DISKSTATS,
 		subsysName: "blkio",
 	}
 }
 
-func NewDiskStatsFile(cgroupdir string) fusefs.Node {
-	return DiskStatsFile{cgroupdir, fs.BlkioGroup{}}
+func NewDiskStatsFile(cgroupdir string, info *FileInfo) {
+	info.node = DiskStatsFile{cgroupdir, fs.BlkioGroup{}}
 }
 
 //https://www.kernel.org/doc/Documentation/cgroups/blkio-controller.txt
@@ -67,12 +70,23 @@ const (
 func (ds DiskStatsFile) Attr(ctx context.Context, a *fuse.Attr) error {
 	a.Inode = INODE_DISKSTATS
 	a.Mode = 0444
-	data, _ := ds.ReadAll(ctx)
+	data, _ := ds.readAll()
 	a.Size = uint64(len(data))
 	return nil
 }
 
-func (ds DiskStatsFile) ReadAll(ctx context.Context) ([]byte, error) {
+func (ds DiskStatsFile) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fusefs.Handle, error) {
+	resp.Flags |= fuse.OpenDirectIO
+	return ds, nil
+}
+
+func (ds DiskStatsFile) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
+	data, _ := ds.readAll()
+	fuseutil.HandleRead(req, resp, data)
+	return nil
+}
+
+func (ds DiskStatsFile) readAll() ([]byte, error) {
 	stats := cgroups.NewStats()
 	ds.blkioGroup.GetStats(ds.cgroupdir, stats)
 	blkioStats := stats.BlkioStats
