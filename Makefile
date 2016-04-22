@@ -13,6 +13,9 @@ get-binary:
 	@docker cp ${container_name}:/tmp/${binary_name} .
 	@docker rm -v -f ${container_name}
 
+test:docker-build
+	@docker run --rm --privileged ${build_image} go test -v github.com/chenchun/cgroupfs
+
 clean:
 	rm -f ${binary_name}
 	@docker rmi ${build_image}
