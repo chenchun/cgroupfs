@@ -1,14 +1,15 @@
 package cgroupfs
 
 import (
-	"testing"
-	"os"
-	"io/ioutil"
-	"path/filepath"
+	"bytes"
 	"fmt"
-	"time"
-	"syscall"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
+	"syscall"
+	"testing"
+	"time"
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 )
@@ -21,9 +22,10 @@ func TestMemory(t *testing.T) {
 	if err := helper.apply("memory", "memory.limit_in_bytes", "102400"); err != nil {
 		t.Fatal(err)
 	}
-	if !helper.startCgroupfs(3*time.Second) {
+	if !helper.startCgroupfs() {
 		t.Fatal("time out waiting for cgroupfs to start")
 	}
+	defer helper.stopCgroupfs()
 	if data, err := helper.readAll("meminfo"); err != nil {
 		t.Fatal(err)
 	} else {
@@ -38,14 +40,42 @@ SwapCached:     0 kB
 			t.Fatalf("content mismatch %s", string(data))
 		}
 	}
-	if err := helper.stopCgroupfs(); err != nil {
+}
+
+func TestStatRefresh(t *testing.T) {
+	helper, err := newCgroupfsHelper("", "")
+	if err != nil {
 		t.Fatal(err)
+	}
+	if !helper.startCgroupfs() {
+		t.Fatal("time out waiting for cgroupfs to start")
+	}
+	defer helper.stopCgroupfs()
+	file, err := os.Open(filepath.Join(helper.mountpoint, "stat"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	before, err := ioutil.ReadAll(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if offset, err := file.Seek(0, 0); err != nil || offset != 0 {
+		t.Fatalf("error seek file to 0 %d %v", offset, err)
+	}
+	time.Sleep(2 * time.Second)
+	after, err := ioutil.ReadAll(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Compare(before, after) == 0 {
+		t.Fatalf("stat file unchanged, %s", string(before))
 	}
 }
 
 type cgroupfsHelper struct {
 	mountpoint string
-	cgroupDir string
+	cgroupDir  string
 }
 
 func newCgroupfsHelper(mountpoint, cgroupDir string) (*cgroupfsHelper, error) {
@@ -64,6 +94,9 @@ func newCgroupfsHelper(mountpoint, cgroupDir string) (*cgroupfsHelper, error) {
 			return nil, err
 		}
 		cgroupDir = strings.TrimPrefix(cgroupDir, memCgroupDir)
+	}
+	if err := createCgroupdir(cgroupDir); err != nil {
+		return nil, err
 	}
 	return &cgroupfsHelper{mountpoint, cgroupDir}, nil
 }
@@ -95,9 +128,9 @@ func (h *cgroupfsHelper) waitForStart(timeout time.Duration) bool {
 	return false
 }
 
-func (h *cgroupfsHelper) startCgroupfs(timeout time.Duration) bool {
+func (h *cgroupfsHelper) startCgroupfs() bool {
 	go Serve(h.mountpoint, h.cgroupDir)
-	return h.waitForStart(timeout)
+	return h.waitForStart(3 * time.Second)
 }
 
 func (h *cgroupfsHelper) stopCgroupfs() error {
@@ -116,6 +149,19 @@ func writeFile(dir, file, data string) error {
 	}
 	if err := ioutil.WriteFile(filepath.Join(dir, file), []byte(data), 0700); err != nil {
 		return fmt.Errorf("failed to write %v to %v: %v", data, file, err)
+	}
+	return nil
+}
+
+func createCgroupdir(dir string) error {
+	for _, subsystem := range []string{"memory", "cpu", "cpuset", "blkio"} {
+		subsystemDir, err := cgroups.FindCgroupMountpoint(subsystem)
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(filepath.Join(subsystemDir, dir), 0700); err != nil {
+			return err
+		}
 	}
 	return nil
 }
