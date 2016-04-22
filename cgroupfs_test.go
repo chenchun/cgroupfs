@@ -96,7 +96,7 @@ func (h *cgroupfsHelper) waitForStart(timeout time.Duration) bool {
 }
 
 func (h *cgroupfsHelper) startCgroupfs(timeout time.Duration) bool {
-	go Serve(h.mountpoint, h.cgroupDir, "")
+	go Serve(h.mountpoint, h.cgroupDir)
 	return h.waitForStart(timeout)
 }
 
