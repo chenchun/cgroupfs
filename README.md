@@ -1,5 +1,7 @@
 # cgroupfs
 
+ [![Build Status](https://travis-ci.org/chenchun/cgroupfs.svg?branch=master)](https://travis-ci.org/chenchun/cgroupfs)
+
 Like lxcfs https://github.com/lxc/lxcfs, cgroupfs provides an emulated /proc/meminfo, /proc/cpuinfo... for containers.
 
 # build
