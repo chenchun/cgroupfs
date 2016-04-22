@@ -1,0 +1,9 @@
+sudo: required
+
+language: go 
+
+services:
+  - docker
+
+before_install:
+- make test
