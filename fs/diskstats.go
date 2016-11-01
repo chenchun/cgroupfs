@@ -89,9 +89,15 @@ func (ds DiskStatsFile) Read(ctx context.Context, req *fuse.ReadRequest, resp *f
 func (ds DiskStatsFile) readAll() ([]byte, error) {
 	stats := cgroups.NewStats()
 	ds.blkioGroup.GetStats(ds.cgroupdir, stats)
-	blkioStats := stats.BlkioStats
 
-	diskStats, _ := ioutil.ReadFile("/proc/diskstats")
+	diskStats, err := ioutil.ReadFile("/proc/diskstats")
+	if err != nil {
+		return []byte{}, fmt.Errorf("failed to read /proc/diskstats: %v", err)
+	}
+	return getDiskStats(diskStats, stats.BlkioStats), nil
+}
+
+func getDiskStats(diskStats []byte, blkioStats cgroups.BlkioStats) []byte {
 	sc := bufio.NewScanner(bytes.NewReader(diskStats))
 	var (
 		major, minor                  uint64
@@ -125,7 +131,7 @@ func (ds DiskStatsFile) readAll() ([]byte, error) {
 			}
 		}
 	}
-	return buf.Bytes(), nil
+	return buf.Bytes()
 }
 
 func getBlkioStats(entries []cgroups.BlkioStatEntry, major, minor uint64, op BlkioOp) uint64 {
