@@ -14,7 +14,7 @@ get-binary:
 	@docker rm -v -f ${container_name}
 
 test:docker-build
-	@docker run --rm --privileged ${build_image} go test -v github.com/chenchun/cgroupfs
+	@docker run --rm --privileged -w /go/src/github.com/chenchun/cgroupfs ${build_image} hack/test.sh
 
 clean:
 	rm -f ${binary_name}
