@@ -13,7 +13,7 @@ import (
 
 var Usage = func() {
 	fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
-	fmt.Fprintf(os.Stderr, "  %s MOUNTPOINT CGROUP_DIR [VETH_NAME]\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "  %s MOUNTPOINT CGROUP_DIR\n", os.Args[0])
 	flag.PrintDefaults()
 }
 
@@ -21,7 +21,7 @@ func main() {
 	flag.Usage = Usage
 	flag.Parse()
 
-	if flag.NArg() != 2 && flag.NArg() != 3 {
+	if flag.NArg() != 2 {
 		Usage()
 		os.Exit(2)
 	}
