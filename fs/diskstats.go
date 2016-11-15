@@ -37,7 +37,7 @@ func NewDiskStatsFile(cgroupdir string, info *FileInfo) {
 	info.node = DiskStatsFile{cgroupdir, fs.BlkioGroup{}}
 }
 
-//https://www.kernel.org/doc/Documentation/cgroups/blkio-controller.txt
+//https://www.kernel.org/doc/Documentation/cgroup-v1/blkio-controller.txt
 //https://www.kernel.org/doc/Documentation/iostats.txt
 
 //blkio.throttle.io_service_bytes
