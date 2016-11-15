@@ -70,7 +70,7 @@ SwapCached:     %d kB
 //SwapFree:       %s kB
 
 var (
-	// https://www.kernel.org/doc/Documentation/cgroups/cgroups.txt
+	// https://www.kernel.org/doc/Documentation/cgroup-v1/memory.txt
 	hardLimit   = "memory.limit_in_bytes"
 	softLimit   = "memory.soft_limit_in_bytes"
 	swapLimit   = "memory.memsw.limit_in_bytes"

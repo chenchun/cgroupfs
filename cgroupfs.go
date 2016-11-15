@@ -60,7 +60,7 @@ func handleStopSignals(mountPoint string) {
 
 	for range s {
 		if err := fuse.Unmount(mountPoint); err != nil {
-			log.Fatal("Error umounting %s: %s", mountPoint, err)
+			log.Fatalf("Error umounting %s: %s", mountPoint, err)
 		}
 		os.Exit(0)
 	}
